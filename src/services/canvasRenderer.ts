@@ -382,8 +382,9 @@ function drawHeader(
   ctx.fillStyle = style.textColor;
   ctx.font = `bold ${exportConfig.cellSize * 2.5}px ${style.fontFamily.title}`;
   ctx.textAlign = 'center';
+  const titleSuffix = data.isRecentYear ? '最近一年' : `${data.year} 年`;
   ctx.fillText(
-    `${data.displayName} 的代码贡献纪年`,
+    `${data.displayName} 的代码贡献纪年 · ${titleSuffix}`,
     centerX,
     padding.top + exportConfig.cellSize * 2
   );

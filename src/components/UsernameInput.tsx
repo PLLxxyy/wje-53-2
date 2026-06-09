@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Search, Loader2, Sparkles, Calendar } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { generateMockData } from '../services/dataProcessor';
+import { RECENT_YEAR } from '../types';
 
 export function UsernameInput() {
   const [inputValue, setInputValue] = useState('');
@@ -91,7 +92,7 @@ export function UsernameInput() {
             >
               {availableYears.map((year) => (
                 <option key={year} value={year}>
-                  {year}
+                  {year === RECENT_YEAR ? '最近一年' : year}
                 </option>
               ))}
             </select>

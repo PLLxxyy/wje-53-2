@@ -49,6 +49,8 @@ export interface Statistics {
   maxContributionsDate: string;
 }
 
+export const RECENT_YEAR = 0;
+
 export interface ProcessedData {
   days: DayData[];
   stats: Statistics;
@@ -56,6 +58,7 @@ export interface ProcessedData {
   displayName: string;
   totalContributions: number;
   year: number;
+  isRecentYear: boolean;
   dateRange: { start: string; end: string };
 }
 

@@ -6,6 +6,7 @@ import type {
   RateLimitInfo,
   LoadingStatus,
 } from '../types';
+import { RECENT_YEAR } from '../types';
 import {
   fetchContributions,
   GitHubApiError,
@@ -32,7 +33,7 @@ function getCurrentYear(): number {
 
 function generateAvailableYears(): number[] {
   const currentYear = getCurrentYear();
-  const years: number[] = [];
+  const years: number[] = [RECENT_YEAR];
   for (let year = currentYear; year >= 2008; year--) {
     years.push(year);
   }
@@ -47,7 +48,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   exportResolution: 'fullhd',
   errorMessage: null,
   rateLimitInfo: null,
-  selectedYear: getCurrentYear(),
+  selectedYear: RECENT_YEAR,
   availableYears: generateAvailableYears(),
 
   setUsername: (username: string) => {

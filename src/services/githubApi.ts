@@ -1,4 +1,5 @@
 import type { GitHubApiResponse, GitHubUser, RateLimitInfo } from '../types';
+import { RECENT_YEAR } from '../types';
 
 const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
 
@@ -11,7 +12,7 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map<string, CacheEntry>();
 
 const CONTRIBUTION_QUERY = `
-  query($username: String!, $from: DateTime!, $to: DateTime!) {
+  query($username: String!, $from: DateTime, $to: DateTime) {
     user(login: $username) {
       login
       name
@@ -102,7 +103,13 @@ export async function fetchContributions(
     return { data: cached, rateLimit: null };
   }
 
-  const { from, to } = getYearDateRange(year);
+  const isRecentYear = year === RECENT_YEAR;
+  const variables: Record<string, unknown> = { username };
+  if (!isRecentYear) {
+    const { from, to } = getYearDateRange(year);
+    variables.from = from;
+    variables.to = to;
+  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -118,7 +125,7 @@ export async function fetchContributions(
       headers,
       body: JSON.stringify({
         query: CONTRIBUTION_QUERY,
-        variables: { username, from, to },
+        variables,
       }),
     });
 

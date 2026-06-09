@@ -5,6 +5,7 @@ import type {
   ProcessedData,
   ContributionDay,
 } from '../types';
+import { RECENT_YEAR } from '../types';
 
 interface StreakResult {
   longestStreak: number;
@@ -145,8 +146,14 @@ function findMaxContributionDay(
 export function processGitHubData(user: GitHubUser, year: number): ProcessedData {
   const allDays = flattenContributionDays(user);
   const calendar = user.contributionsCollection.contributionCalendar;
+  const isRecentYear = year === RECENT_YEAR;
 
-  const yearDays = allDays.filter((day) => day.date.startsWith(`${year}-`));
+  let filteredDays: ContributionDay[];
+  if (isRecentYear) {
+    filteredDays = allDays.slice(-365);
+  } else {
+    filteredDays = allDays.filter((day) => day.date.startsWith(`${year}-`));
+  }
 
   const {
     longestStreak,
@@ -154,15 +161,15 @@ export function processGitHubData(user: GitHubUser, year: number): ProcessedData
     longestStreakEnd,
     currentStreak,
     longestStreakDates,
-  } = calculateStreaks(yearDays);
+  } = calculateStreaks(filteredDays);
 
   const { mostActiveMonth, mostActiveMonthCount } =
-    calculateMostActiveMonth(yearDays);
+    calculateMostActiveMonth(filteredDays);
 
   const { maxContributions, maxContributionsDate } =
-    findMaxContributionDay(yearDays);
+    findMaxContributionDay(filteredDays);
 
-  const days: DayData[] = yearDays.map((day) => ({
+  const days: DayData[] = filteredDays.map((day) => ({
     date: day.date,
     count: day.contributionCount,
     level: calculateContributionLevel(day.contributionCount, maxContributions),
@@ -187,13 +194,16 @@ export function processGitHubData(user: GitHubUser, year: number): ProcessedData
     end: days.length > 0 ? days[days.length - 1].date : `${year}-12-31`,
   };
 
+  const displayYear = isRecentYear ? new Date().getFullYear() : year;
+
   return {
     days,
     stats,
     username: user.login,
     displayName: user.name || user.login,
     totalContributions: calendar.totalContributions,
-    year,
+    year: displayYear,
+    isRecentYear,
     dateRange,
   };
 }
@@ -230,11 +240,22 @@ export function getWeekdayName(weekday: number): string {
 }
 
 export function generateMockData(year?: number): ProcessedData {
-  const targetYear = year ?? new Date().getFullYear();
+  const inputYear = year ?? RECENT_YEAR;
+  const isRecentYear = inputYear === RECENT_YEAR;
+  const targetYear = isRecentYear ? new Date().getFullYear() : inputYear;
   const days: DayData[] = [];
 
-  const startDate = new Date(targetYear, 0, 1);
-  const endDate = new Date(targetYear, 11, 31);
+  let startDate: Date;
+  let endDate: Date;
+
+  if (isRecentYear) {
+    endDate = new Date();
+    startDate = new Date();
+    startDate.setDate(startDate.getDate() - 364);
+  } else {
+    startDate = new Date(targetYear, 0, 1);
+    endDate = new Date(targetYear, 11, 31);
+  }
 
   const currentDate = new Date(startDate);
   while (currentDate <= endDate) {
@@ -338,6 +359,7 @@ export function generateMockData(year?: number): ProcessedData {
     displayName: '演示用户',
     totalContributions: days.reduce((sum, d) => sum + d.count, 0),
     year: targetYear,
+    isRecentYear,
     dateRange,
   };
 }
