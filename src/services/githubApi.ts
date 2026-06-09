@@ -11,12 +11,12 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map<string, CacheEntry>();
 
 const CONTRIBUTION_QUERY = `
-  query($username: String!) {
+  query($username: String!, $from: DateTime!, $to: DateTime!) {
     user(login: $username) {
       login
       name
       avatarUrl
-      contributionsCollection {
+      contributionsCollection(from: $from, to: $to) {
         contributionCalendar {
           totalContributions
           weeks {
@@ -32,13 +32,19 @@ const CONTRIBUTION_QUERY = `
   }
 `;
 
-function getCacheKey(username: string): string {
+function getCacheKey(username: string, year: number): string {
   const today = new Date().toISOString().split('T')[0];
-  return `${username}-${today}`;
+  return `${username}-${year}-${today}`;
 }
 
-export function getCachedContributions(username: string): GitHubUser | null {
-  const key = getCacheKey(username);
+export function getYearDateRange(year: number): { from: string; to: string } {
+  const from = new Date(year, 0, 1, 0, 0, 0).toISOString();
+  const to = new Date(year, 11, 31, 23, 59, 59).toISOString();
+  return { from, to };
+}
+
+export function getCachedContributions(username: string, year: number): GitHubUser | null {
+  const key = getCacheKey(username, year);
   const entry = cache.get(key);
   if (entry && Date.now() - entry.timestamp < CACHE_DURATION) {
     return entry.data;
@@ -47,8 +53,8 @@ export function getCachedContributions(username: string): GitHubUser | null {
   return null;
 }
 
-export function setCachedContributions(username: string, data: GitHubUser): void {
-  const key = getCacheKey(username);
+export function setCachedContributions(username: string, year: number, data: GitHubUser): void {
+  const key = getCacheKey(username, year);
   cache.set(key, {
     data,
     timestamp: Date.now(),
@@ -88,12 +94,15 @@ export class GitHubApiError extends Error {
 
 export async function fetchContributions(
   username: string,
+  year: number,
   token?: string
 ): Promise<{ data: GitHubUser; rateLimit: RateLimitInfo | null }> {
-  const cached = getCachedContributions(username);
+  const cached = getCachedContributions(username, year);
   if (cached) {
     return { data: cached, rateLimit: null };
   }
+
+  const { from, to } = getYearDateRange(year);
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -109,7 +118,7 @@ export async function fetchContributions(
       headers,
       body: JSON.stringify({
         query: CONTRIBUTION_QUERY,
-        variables: { username },
+        variables: { username, from, to },
       }),
     });
 
@@ -164,7 +173,7 @@ export async function fetchContributions(
       );
     }
 
-    setCachedContributions(username, result.data.user);
+    setCachedContributions(username, year, result.data.user);
 
     return {
       data: result.data.user,

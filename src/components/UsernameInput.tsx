@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Search, Loader2, Sparkles } from 'lucide-react';
+import { Search, Loader2, Sparkles, Calendar } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { generateMockData } from '../services/dataProcessor';
 
@@ -8,8 +8,16 @@ export function UsernameInput() {
   const [isGenerating, setIsGenerating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { loadingStatus, fetchData, setError, contributionData, clearData } =
-    useAppStore();
+  const {
+    loadingStatus,
+    fetchData,
+    setError,
+    contributionData,
+    clearData,
+    selectedYear,
+    availableYears,
+    fetchYearData,
+  } = useAppStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,12 +26,21 @@ export function UsernameInput() {
     }
   };
 
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const year = parseInt(e.target.value, 10);
+    if (contributionData) {
+      fetchYearData(year);
+    } else {
+      useAppStore.setState({ selectedYear: year });
+    }
+  };
+
   const handleGenerateDemo = async () => {
     setIsGenerating(true);
     setError(null);
 
     setTimeout(() => {
-      const mockData = generateMockData();
+      const mockData = generateMockData(selectedYear);
       useAppStore.setState({
         contributionData: mockData,
         loadingStatus: 'success',
@@ -42,26 +59,59 @@ export function UsernameInput() {
   return (
     <div className="w-full space-y-4">
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="输入 GitHub 用户名，如 torvalds"
-            className="w-full px-4 py-3 pl-11 pr-12 text-sm bg-zinc-900/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200"
-            disabled={loadingStatus === 'loading' || isGenerating}
-          />
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          {inputValue && loadingStatus !== 'loading' && (
-            <button
-              type="button"
-              onClick={() => setInputValue('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="输入 GitHub 用户名，如 torvalds"
+              className="w-full px-4 py-3 pl-11 pr-12 text-sm bg-zinc-900/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200"
+              disabled={loadingStatus === 'loading' || isGenerating}
+            />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            {inputValue && loadingStatus !== 'loading' && (
+              <button
+                type="button"
+                onClick={() => setInputValue('')}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <div className="relative">
+            <select
+              value={selectedYear}
+              onChange={handleYearChange}
+              disabled={loadingStatus === 'loading' || isGenerating}
+              className="px-4 py-3 pl-10 pr-10 text-sm bg-zinc-900/50 border border-zinc-700 rounded-lg text-white appearance-none cursor-pointer focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ×
-            </button>
-          )}
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg
+                className="w-4 h-4 text-zinc-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-2">

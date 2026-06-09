@@ -390,10 +390,8 @@ function drawHeader(
 
   ctx.fillStyle = style.secondaryTextColor;
   ctx.font = `${exportConfig.cellSize * 1.2}px ${style.fontFamily.body}`;
-  const dateRange = `${data.days[0].date} ~ ${
-    data.days[data.days.length - 1].date
-  }`;
-  ctx.fillText(`@${data.username} · ${dateRange}`, centerX, padding.top + exportConfig.cellSize * 4);
+  const dateRangeText = `${data.dateRange.start} ~ ${data.dateRange.end}`;
+  ctx.fillText(`@${data.username} · ${dateRangeText}`, centerX, padding.top + exportConfig.cellSize * 4);
 }
 
 function drawStats(

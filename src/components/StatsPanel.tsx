@@ -53,7 +53,7 @@ export function StatsPanel() {
     <div className="w-full space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-zinc-300">数据统计</h3>
-        <span className="text-xs text-zinc-600">过去 365 天</span>
+        <span className="text-xs text-zinc-600">{contributionData.year} 年</span>
       </div>
 
       <div className="grid grid-cols-3 gap-2">

@@ -55,6 +55,8 @@ export interface ProcessedData {
   username: string;
   displayName: string;
   totalContributions: number;
+  year: number;
+  dateRange: { start: string; end: string };
 }
 
 export type StyleId = 'scroll' | 'tape' | 'rainbow' | 'minimal';
@@ -114,4 +116,6 @@ export interface AppState {
   exportResolution: 'hd' | 'fullhd' | 'print';
   errorMessage: string | null;
   rateLimitInfo: RateLimitInfo | null;
+  selectedYear: number;
+  availableYears: number[];
 }

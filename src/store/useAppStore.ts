@@ -17,10 +17,26 @@ interface AppStore extends AppState {
   setUsername: (username: string) => void;
   setSelectedStyle: (style: StyleId) => void;
   setExportResolution: (resolution: 'hd' | 'fullhd' | 'print') => void;
-  fetchData: (username: string, token?: string) => Promise<void>;
+  setSelectedYear: (year: number) => void;
+  fetchData: (username: string, year?: number, token?: string) => Promise<void>;
+  fetchYearData: (year: number, token?: string) => Promise<void>;
   clearData: () => void;
   setError: (message: string | null) => void;
   setRateLimitInfo: (info: RateLimitInfo | null) => void;
+  initAvailableYears: () => void;
+}
+
+function getCurrentYear(): number {
+  return new Date().getFullYear();
+}
+
+function generateAvailableYears(): number[] {
+  const currentYear = getCurrentYear();
+  const years: number[] = [];
+  for (let year = currentYear; year >= 2008; year--) {
+    years.push(year);
+  }
+  return years;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -31,6 +47,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   exportResolution: 'fullhd',
   errorMessage: null,
   rateLimitInfo: null,
+  selectedYear: getCurrentYear(),
+  availableYears: generateAvailableYears(),
 
   setUsername: (username: string) => {
     set({ username });
@@ -44,8 +62,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ exportResolution: resolution });
   },
 
-  fetchData: async (username: string, token?: string) => {
+  setSelectedYear: (year: number) => {
+    set({ selectedYear: year });
+  },
+
+  initAvailableYears: () => {
+    set({ availableYears: generateAvailableYears() });
+  },
+
+  fetchData: async (username: string, year?: number, token?: string) => {
     const trimmedUsername = username.trim();
+    const targetYear = year ?? get().selectedYear;
 
     if (!trimmedUsername) {
       set({
@@ -67,15 +94,69 @@ export const useAppStore = create<AppStore>((set, get) => ({
       loadingStatus: 'loading',
       errorMessage: null,
       username: trimmedUsername,
+      selectedYear: targetYear,
     });
 
     try {
       const { data, rateLimit } = await fetchContributions(
         trimmedUsername,
+        targetYear,
         token
       );
 
-      const processedData = processGitHubData(data);
+      const processedData = processGitHubData(data, targetYear);
+
+      set({
+        contributionData: processedData,
+        loadingStatus: 'success',
+        rateLimitInfo: rateLimit,
+      });
+    } catch (error) {
+      let errorMessage = '获取数据失败，请稍后重试';
+      let loadingStatus: LoadingStatus = 'error';
+
+      if (error instanceof GitHubApiError) {
+        errorMessage = error.message;
+        if (error.rateLimit) {
+          set({ rateLimitInfo: error.rateLimit });
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      set({
+        errorMessage,
+        loadingStatus,
+        contributionData: null,
+      });
+    }
+  },
+
+  fetchYearData: async (year: number, token?: string) => {
+    const { username } = get();
+
+    if (!username) {
+      set({
+        errorMessage: '请先输入 GitHub 用户名',
+        loadingStatus: 'error',
+      });
+      return;
+    }
+
+    set({
+      loadingStatus: 'loading',
+      errorMessage: null,
+      selectedYear: year,
+    });
+
+    try {
+      const { data, rateLimit } = await fetchContributions(
+        username,
+        year,
+        token
+      );
+
+      const processedData = processGitHubData(data, year);
 
       set({
         contributionData: processedData,

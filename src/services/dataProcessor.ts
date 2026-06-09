@@ -142,11 +142,11 @@ function findMaxContributionDay(
   };
 }
 
-export function processGitHubData(user: GitHubUser): ProcessedData {
+export function processGitHubData(user: GitHubUser, year: number): ProcessedData {
   const allDays = flattenContributionDays(user);
   const calendar = user.contributionsCollection.contributionCalendar;
 
-  const last365Days = allDays.slice(-365);
+  const yearDays = allDays.filter((day) => day.date.startsWith(`${year}-`));
 
   const {
     longestStreak,
@@ -154,15 +154,15 @@ export function processGitHubData(user: GitHubUser): ProcessedData {
     longestStreakEnd,
     currentStreak,
     longestStreakDates,
-  } = calculateStreaks(last365Days);
+  } = calculateStreaks(yearDays);
 
   const { mostActiveMonth, mostActiveMonthCount } =
-    calculateMostActiveMonth(last365Days);
+    calculateMostActiveMonth(yearDays);
 
   const { maxContributions, maxContributionsDate } =
-    findMaxContributionDay(last365Days);
+    findMaxContributionDay(yearDays);
 
-  const days: DayData[] = last365Days.map((day) => ({
+  const days: DayData[] = yearDays.map((day) => ({
     date: day.date,
     count: day.contributionCount,
     level: calculateContributionLevel(day.contributionCount, maxContributions),
@@ -182,12 +182,19 @@ export function processGitHubData(user: GitHubUser): ProcessedData {
     maxContributionsDate,
   };
 
+  const dateRange = {
+    start: days.length > 0 ? days[0].date : `${year}-01-01`,
+    end: days.length > 0 ? days[days.length - 1].date : `${year}-12-31`,
+  };
+
   return {
     days,
     stats,
     username: user.login,
     displayName: user.name || user.login,
     totalContributions: calendar.totalContributions,
+    year,
+    dateRange,
   };
 }
 
@@ -222,14 +229,16 @@ export function getWeekdayName(weekday: number): string {
   return weekdays[weekday];
 }
 
-export function generateMockData(): ProcessedData {
+export function generateMockData(year?: number): ProcessedData {
+  const targetYear = year ?? new Date().getFullYear();
   const days: DayData[] = [];
-  const today = new Date();
 
-  for (let i = 364; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
+  const startDate = new Date(targetYear, 0, 1);
+  const endDate = new Date(targetYear, 11, 31);
+
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
 
     const random = Math.random();
     let count = 0;
@@ -244,6 +253,8 @@ export function generateMockData(): ProcessedData {
       isMaxContribution: false,
       inLongestStreak: false,
     });
+
+    currentDate.setDate(currentDate.getDate() + 1);
   }
 
   let maxCount = 0;
@@ -305,6 +316,11 @@ export function generateMockData(): ProcessedData {
     }
   }
 
+  const dateRange = {
+    start: days.length > 0 ? days[0].date : `${targetYear}-01-01`,
+    end: days.length > 0 ? days[days.length - 1].date : `${targetYear}-12-31`,
+  };
+
   return {
     days,
     stats: {
@@ -321,5 +337,7 @@ export function generateMockData(): ProcessedData {
     username: 'demo-user',
     displayName: '演示用户',
     totalContributions: days.reduce((sum, d) => sum + d.count, 0),
+    year: targetYear,
+    dateRange,
   };
 }
